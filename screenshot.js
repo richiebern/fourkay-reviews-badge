@@ -14,7 +14,7 @@ const puppeteer = require('puppeteer');
   await page.setViewport({
     width: 800,
     height: 400,
-    deviceScaleFactor: 2
+    deviceScaleFactor: 2     // retina-sharp
   });
 
   await page.goto(url, {
@@ -22,24 +22,17 @@ const puppeteer = require('puppeteer');
     timeout: 60000
   });
 
-  await page.waitForSelector('#fourkay-elfsight-badge-wrapper', {
-    timeout: 60000
-  });
+  // Wait for Elfsight to load inside our frame
+  await page.waitForSelector('#fourkay-badge-frame', { timeout: 60000 });
 
-  // Remove any padding/margins dynamically before capture
+  // Remove any margins from body to avoid weird offsets
   await page.evaluate(() => {
-    const wrapper = document.querySelector('#fourkay-elfsight-badge-wrapper');
-    if (wrapper) {
-      wrapper.style.padding = '0';
-      wrapper.style.margin = '0';
-    }
-
     document.body.style.margin = '0';
   });
 
-  const element = await page.$('#fourkay-elfsight-badge-wrapper');
+  const element = await page.$('#fourkay-badge-frame');
   if (!element) {
-    throw new Error('Badge wrapper not found');
+    throw new Error('Badge frame not found');
   }
 
   const box = await element.boundingBox();
@@ -55,5 +48,5 @@ const puppeteer = require('puppeteer');
   });
 
   await browser.close();
-  console.log('Trimmed screenshot saved:', outPath);
+  console.log('Screenshot saved to', outPath);
 })();
