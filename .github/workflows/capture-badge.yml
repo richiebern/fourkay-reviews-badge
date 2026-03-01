@@ -4,8 +4,11 @@ on:
   schedule:
     # Every day at 04:30 UTC (adjust if you want)
     - cron: '30 4 * * *'
-  workflow_dispatch: {}  # allow manual runs from the UI
+  workflow_dispatch: {}
 
+permissions:
+  contents: write   
+  
 jobs:
   capture:
     runs-on: ubuntu-latest
