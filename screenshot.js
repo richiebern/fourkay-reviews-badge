@@ -16,7 +16,7 @@ const puppeteer = require('puppeteer');
   await page.setViewport({
     width: 800,
     height: 400,
-    deviceScaleFactor: 2
+    deviceScaleFactor: 1
   });
 
   console.log('Opening page:', url);
