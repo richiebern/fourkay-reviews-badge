@@ -1,3 +1,4 @@
+// screenshot.js
 const puppeteer = require('puppeteer');
 
 (async () => {
@@ -11,42 +12,53 @@ const puppeteer = require('puppeteer');
 
   const page = await browser.newPage();
 
+  // HiDPI for sharp badge; final PNG will be ~2x CSS size
   await page.setViewport({
     width: 800,
     height: 400,
-    deviceScaleFactor: 2     // retina-sharp
+    deviceScaleFactor: 2
   });
 
+  console.log('Opening page:', url);
   await page.goto(url, {
     waitUntil: 'networkidle2',
     timeout: 60000
   });
 
-  // Wait for Elfsight to load inside our frame
-  await page.waitForSelector('#fourkay-badge-frame', { timeout: 60000 });
-
-  // Remove any margins from body to avoid weird offsets
+  // Belt-and-braces: force black background on html/body
   await page.evaluate(() => {
+    document.documentElement.style.backgroundColor = '#000';
+    document.body.style.backgroundColor = '#000';
     document.body.style.margin = '0';
   });
 
+  // Wait for our fixed-size frame that contains the badge
+  await page.waitForSelector('#fourkay-badge-frame', { timeout: 60000 });
+
   const element = await page.$('#fourkay-badge-frame');
   if (!element) {
-    throw new Error('Badge frame not found');
+    throw new Error('Badge frame #fourkay-badge-frame not found');
   }
 
-  const box = await element.boundingBox();
-
-  await page.screenshot({
-    path: outPath,
-    clip: {
-      x: box.x,
-      y: box.y,
-      width: box.width,
-      height: box.height
+  // Make sure the frame itself has no margin and is visible
+  await page.evaluate(() => {
+    const frame = document.querySelector('#fourkay-badge-frame');
+    if (frame) {
+      frame.style.margin = '0';
     }
+  });
+
+  // Scroll it nicely into view so there’s no weird offset
+  await element.evaluate(el => el.scrollIntoView({ block: 'center', inline: 'center' }));
+
+  // Screenshot just that element – NO manual clip box
+  await element.screenshot({
+    path: outPath
   });
 
   await browser.close();
   console.log('Screenshot saved to', outPath);
-})();
+})().catch(err => {
+  console.error('Screenshot failed:', err);
+  process.exit(1);
+});
