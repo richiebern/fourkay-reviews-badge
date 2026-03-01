@@ -5,31 +5,36 @@ const puppeteer = require('puppeteer');
   const outPath = 'elfsight-badge.png';
 
   const browser = await puppeteer.launch({
-    headless: 'new',           // new headless mode
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox'
-    ]
+    headless: 'new',
+    args: ['--no-sandbox', '--disable-setuid-sandbox']
   });
 
   const page = await browser.newPage();
 
-  // Reasonable viewport; deviceScaleFactor=2 for a sharp badge
   await page.setViewport({
-    width: 600,
-    height: 200,
+    width: 800,
+    height: 400,
     deviceScaleFactor: 2
   });
 
-  // Go to the render page and wait for network to quiet down
   await page.goto(url, {
     waitUntil: 'networkidle2',
     timeout: 60000
   });
 
-  // Wait explicitly for the badge wrapper (Elfsight has loaded)
   await page.waitForSelector('#fourkay-elfsight-badge-wrapper', {
     timeout: 60000
+  });
+
+  // Remove any padding/margins dynamically before capture
+  await page.evaluate(() => {
+    const wrapper = document.querySelector('#fourkay-elfsight-badge-wrapper');
+    if (wrapper) {
+      wrapper.style.padding = '0';
+      wrapper.style.margin = '0';
+    }
+
+    document.body.style.margin = '0';
   });
 
   const element = await page.$('#fourkay-elfsight-badge-wrapper');
@@ -37,15 +42,18 @@ const puppeteer = require('puppeteer');
     throw new Error('Badge wrapper not found');
   }
 
-  // Screenshot just that element
-  await element.screenshot({
+  const box = await element.boundingBox();
+
+  await page.screenshot({
     path: outPath,
-    omitBackground: false
+    clip: {
+      x: box.x,
+      y: box.y,
+      width: box.width,
+      height: box.height
+    }
   });
 
   await browser.close();
-  console.log('Screenshot saved to', outPath);
-})().catch(err => {
-  console.error('Screenshot failed:', err);
-  process.exit(1);
-});
+  console.log('Trimmed screenshot saved:', outPath);
+})();
