@@ -25,6 +25,34 @@ const puppeteer = require('puppeteer');
     timeout: 60000
   });
 
+  // Hide/remove Complianz cookie banner and overlays for screenshot only
+  await page.addStyleTag({
+    content: `
+      #cmplz-cookiebanner-container,
+      .cmplz-cookiebanner,
+      .cmplz-manage-consent,
+      .cmplz-soft-cookiewall,
+      .cmplz-blocked-content-container {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+      }
+    `
+  });
+
+  await page.evaluate(() => {
+    [
+      '#cmplz-cookiebanner-container',
+      '.cmplz-cookiebanner',
+      '.cmplz-manage-consent',
+      '.cmplz-soft-cookiewall',
+      '.cmplz-blocked-content-container'
+    ].forEach(selector => {
+      document.querySelectorAll(selector).forEach(el => el.remove());
+    });
+  });
+
   // Belt-and-braces: force black background on html/body
   await page.evaluate(() => {
     document.documentElement.style.backgroundColor = '#000';
@@ -47,6 +75,9 @@ const puppeteer = require('puppeteer');
       frame.style.margin = '0';
     }
   });
+
+  // Small pause to let layout settle after removing Complianz elements
+  await new Promise(resolve => setTimeout(resolve, 500));
 
   // Scroll it nicely into view so there’s no weird offset
   await element.evaluate(el => el.scrollIntoView({ block: 'center', inline: 'center' }));
